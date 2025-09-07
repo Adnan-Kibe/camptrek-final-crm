@@ -19,7 +19,6 @@ export const metadata: Metadata = {
   description: "Manage itineraries, bookings, and adventures seamlessly with Camptrek.",
   keywords: ["Camptrek", "Dashboard", "Travel", "Itineraries", "Bookings", "Tours", "Adventure"],
   authors: [{ name: "MindFirm solutions" }],
-
 };
 
 
