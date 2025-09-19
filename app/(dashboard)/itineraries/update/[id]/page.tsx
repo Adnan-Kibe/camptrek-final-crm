@@ -98,8 +98,8 @@ const UpdatePage = () => {
           details: day.details,
           images: []
         })) || [],
-        costExclusive: itinerary.cost_exclusive?.map(item => ({ item })) || [],
-        costInclusive: itinerary.cost_inclusive?.map(item => ({ item })) || []
+        costExclusive: itinerary.cost_exclusive?.map(item => ({ item })) || [{ item: "" }],
+        costInclusive: itinerary.cost_inclusive?.map(item => ({ item })) || [{ item: "" }]
       }
       
       setOriginalData(defaultValues)
@@ -154,33 +154,48 @@ const UpdatePage = () => {
       }
     })
 
-    // Handle tags if dirty
-    if (dirtyFields.tags) {
-      payload.tags = data.tags?.map(tag => tag.name).filter(Boolean).join(',') || ''
+    // Handle tags if dirty - Fixed: Check for array structure
+    if (dirtyFields.tags && data.tags) {
+      payload.tags = data.tags
+        .map(tag => tag.name)
+        .filter(name => name && name.trim() !== '')
+        .map(name => ({ name: name.trim() })) // Backend expects array of tag objects
     }
 
-    // Handle cost arrays if dirty
-    if (dirtyFields.costInclusive) {
-      payload.cost_inclusive = data.costInclusive?.map(item => item.item).filter(Boolean) || []
+    // Handle cost arrays if dirty - Fixed: Extract item values
+    if (dirtyFields.costInclusive && data.costInclusive) {
+      payload.cost_inclusive = data.costInclusive
+        .map(item => item.item)
+        .filter(item => item && item.trim() !== '')
     }
 
-    if (dirtyFields.costExclusive) {
-      payload.cost_exclusive = data.costExclusive?.map(item => item.item).filter(Boolean) || []
+    if (dirtyFields.costExclusive && data.costExclusive) {
+      payload.cost_exclusive = data.costExclusive
+        .map(item => item.item)
+        .filter(item => item && item.trim() !== '')
     }
 
-    // Handle images if provided and dirty
+    // Handle main images if provided and dirty
     if (dirtyFields.images && data.images?.length) {
-      const uploadedImages = await handleImagesUpload(data.images)
-      payload.images = uploadedImages
+      // Filter only file uploads (new images)
+      const fileImages = data.images.filter(img => 'file' in img) as { file: File }[]
+      if (fileImages.length > 0) {
+        const uploadedImages = await handleImagesUpload(fileImages)
+        payload.images = uploadedImages
+      }
     }
 
-    // Handle days if dirty
-    if (dirtyFields.days) {
+    // Handle days if dirty - Fixed: Process day images properly
+    if (dirtyFields.days && data.days) {
       const processedDays = await Promise.all(
-        data.days?.map(async (day) => {
+        data.days.map(async (day) => {
           let dayImageUrls: any[] = []
           if (day.images && day.images.length > 0) {
-            dayImageUrls = await handleImagesUpload(day.images)
+            // Filter file uploads
+            const fileImages = day.images.filter(img => 'file' in img) as { file: File }[]
+            if (fileImages.length > 0) {
+              dayImageUrls = await handleImagesUpload(fileImages)
+            }
           }
           return {
             day: day.day,
@@ -188,7 +203,7 @@ const UpdatePage = () => {
             details: day.details,
             images: dayImageUrls
           }
-        }) || []
+        })
       )
       payload.days = processedDays
     }
@@ -198,19 +213,26 @@ const UpdatePage = () => {
 
   // Update itinerary function - PATCH request
   const updateItinerary = async (data: TsItineraryUpdate) => {
-    const payload = await buildPatchPayload(data)
+    try {
+      const payload = await buildPatchPayload(data)
 
-    // Only proceed if there are changes to send
-    if (Object.keys(payload).length === 0) {
-      throw new Error("No changes detected to update")
-    }
+      // Only proceed if there are changes to send
+      if (Object.keys(payload).length === 0) {
+        throw new Error("No changes detected to update")
+      }
 
-    const response = await baseInstance.patch(`/itineraries/${id}`, payload)
-    if (response.status !== 200) {
-      throw new Error("Failed to update itinerary")
+      console.log('Sending payload:', payload) // Debug log
+
+      const response = await baseInstance.patch(`/itineraries/update/${id}`, payload)
+      if (response.status !== 200) {
+        throw new Error("Failed to update itinerary")
+      }
+      
+      return response.data
+    } catch (error: any) {
+      console.error('Update error details:', error.response?.data || error)
+      throw error
     }
-    
-    return response.data
   }
 
   const { mutate: updateMutation, isPending } = useMutation({
@@ -224,7 +246,7 @@ const UpdatePage = () => {
       showToast({
         type: 'success',
         title: 'Itinerary Updated Successfully!',
-        message: `Updated fields: ${Object.keys(data.updated_fields || {}).join(', ')}`,
+        message: `Updated ${data.updated_count || 0} field(s)`,
         duration: 5000
       })
       
@@ -238,7 +260,10 @@ const UpdatePage = () => {
       let errorMessage = "An unexpected error occurred. Please try again."
       
       if (error.response?.status === 400) {
-        errorMessage = "Update failed. Please check all required fields."
+        const detail = error.response?.data?.detail
+        errorMessage = detail || "Update failed. Please check all required fields."
+      } else if (error.response?.status === 401) {
+        errorMessage = "You are not authorized to update this itinerary."
       } else if (error.response?.status === 404) {
         errorMessage = "Itinerary not found."
         router.push("/itineraries")
@@ -258,6 +283,7 @@ const UpdatePage = () => {
   })
 
   const onSubmit = async (data: TsItineraryUpdate) => {
+    console.log('Form data:', data) // Debug log
     updateMutation(data)
   }
 
