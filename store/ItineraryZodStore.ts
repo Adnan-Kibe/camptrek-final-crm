@@ -19,7 +19,6 @@ const tagsSchema = z.object({
 
 const accommodationSchema = z.enum(["Budget", "Mid", "Luxury"])
 
-const locationSchema = z.enum(["Kenya", "Tanzania", "Kenya & Tanzania", "Uganda"])
 
 const daysSchema = z.object({
     day: z.coerce.number().int().positive({ message: "Day number must be a positive integer" }),
@@ -39,7 +38,7 @@ export const itinerarySchema = z.object({
     images: z.array(imagesSchema).min(1, { error: "Requires at least one image" }),
     tags: z.array(tagsSchema).min(1, { message: "At least one tag is required" }),
     accommodation: accommodationSchema,
-    location: locationSchema,
+    location: z.string().min(1, { error: "Location is required" }),
     days: z.array(daysSchema).min(1, { message: "There should be at least one day added" }),
     costIncluded: z.array(costIncludedSchema).optional().default([]),
     costExcluded: z.array(costExcludedSchema).optional().default([]),

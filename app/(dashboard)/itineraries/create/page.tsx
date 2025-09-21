@@ -13,7 +13,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { FormProvider, useForm } from "react-hook-form";
 import { motion } from "motion/react";
 import { MapPin, Calendar, Plane, Save } from "lucide-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { baseInstance } from "@/constants/api";
 
@@ -277,7 +277,11 @@ const CreatePage = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <LocationDropDown />
+                <CustomFormInput
+                title="Destination"
+                name="destination"
+                placeholder="Kenya"
+                />
                 <AccommodationDropDown />
               </div>
             </section>
