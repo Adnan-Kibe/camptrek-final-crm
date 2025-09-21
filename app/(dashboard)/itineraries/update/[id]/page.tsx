@@ -436,7 +436,11 @@ const UpdatePage = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <LocationDropDown />
+                <CustomFormInput
+                title="Destination"
+                name="destination"
+                placeholder="Kenya"
+                />
                 <AccommodationDropDown />
               </div>
             </section>
