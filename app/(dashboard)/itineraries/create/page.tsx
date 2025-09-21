@@ -54,7 +54,6 @@ const CreatePage = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  
   const handleImagesUpload = async (images: { file: File }[]) => {
     const formData = new FormData();
 
@@ -278,9 +277,9 @@ const CreatePage = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <CustomFormInput
-                title="Destination"
-                name="destination"
-                placeholder="Kenya"
+                  title="Location"
+                  name="location"
+                  placeholder="Kenya"
                 />
                 <AccommodationDropDown />
               </div>

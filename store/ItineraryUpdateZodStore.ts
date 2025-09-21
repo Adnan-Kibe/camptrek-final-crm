@@ -22,9 +22,10 @@ const UpdateDaySchema = z.object({
   images: z.array(UpdateImageSchema).optional(),
 });
 
-/**
- * Update itinerary schema
- */
+const UpdateTagSchema = z.object({
+  name: z.string().min(1).max(50),
+});
+
 export const UpdateItinerarySchema = z.object({
   title: z.string().optional(),
   duration: z.number().int().positive().optional(),
@@ -32,12 +33,12 @@ export const UpdateItinerarySchema = z.object({
   images: z.array(UpdateImageSchema).optional(),
   days: z.array(UpdateDaySchema).optional(),
   price: z.number().nonnegative().optional(),
-  tags: z.string().optional(),
+  tags: z.array(UpdateTagSchema).optional(),   // 👈 fix here
   arrival_city: z.string().optional(),
   departure_city: z.string().optional(),
   accommodation: z.string().optional(),
   location: z.string().optional(),
-  discount: z.number().nonnegative().optional(),
+  discount: z.number().nonnegative().max(100).optional(),
   cost_inclusive: z.array(z.string()).optional(),
   cost_exclusive: z.array(z.string()).optional(),
 });
