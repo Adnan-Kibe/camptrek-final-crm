@@ -1,4 +1,5 @@
-'use clinet'
+'use client'
+
 import { baseInstance } from '@/constants/api'
 import { ItineraryProps } from '@/constants/propConstants'
 import { useQuery } from '@tanstack/react-query'
