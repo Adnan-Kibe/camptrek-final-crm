@@ -1,43 +1,20 @@
-// update-itinerary.schema.ts
+// Import the fixed schema from below or update your existing one
 import { z } from "zod";
-
-/**
- * Basic image object for update
- */
-const UpdateImageSchema = z.object({
-  id: z.uuid(),
-  image_url: z.url(),
-}).partial({
-  image_url: true, // allow updating just the url
-});
-
-/**
- * A single day in the itinerary (update version)
- */
-const UpdateDaySchema = z.object({
-  id: z.uuid(),
-  day_number: z.number().int().nonnegative().optional(),
-  title: z.string().optional(),
-  details: z.string().optional(),
-  images: z.array(UpdateImageSchema).optional(),
-});
 
 const UpdateTagSchema = z.object({
   name: z.string().min(1).max(50),
 });
 
 export const UpdateItinerarySchema = z.object({
-  title: z.string().optional(),
+  title: z.string().min(1).optional(),
   duration: z.number().int().positive().optional(),
-  overview: z.string().optional(),
-  images: z.array(UpdateImageSchema).optional(),
-  days: z.array(UpdateDaySchema).optional(),
+  overview: z.string().min(10).optional(),
   price: z.number().nonnegative().optional(),
-  tags: z.array(UpdateTagSchema).optional(),   // 👈 fix here
-  arrival_city: z.string().optional(),
-  departure_city: z.string().optional(),
-  accommodation: z.string().optional(),
-  location: z.string().optional(),
+  tags: z.array(UpdateTagSchema).optional(),
+  arrival_city: z.string().min(1).optional(),
+  departure_city: z.string().min(1).optional(),
+  accommodation: z.string().min(1).optional(),
+  location: z.string().min(1).optional(),
   discount: z.number().nonnegative().max(100).optional(),
   cost_inclusive: z.array(z.string()).optional(),
   cost_exclusive: z.array(z.string()).optional(),
