@@ -1,29 +1,45 @@
-"use client";
-import { AnimatePresence, motion } from "motion/react";
-import React, { useRef } from "react";
-import { useFormContext } from "react-hook-form";
+"use client"
+import { AnimatePresence, motion } from "motion/react"
+import React, { useRef } from "react"
+import { useFormContext } from "react-hook-form"
+import { X } from "lucide-react"
 
 const MapUploader = () => {
-  const { watch, setValue, formState: { errors } } = useFormContext();
-  const hasError = errors["map"];
-  const watchImage = watch("map");
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const {
+    watch,
+    setValue,
+    formState: { errors },
+  } = useFormContext()
+  const hasError = errors["map"]
+  const watchImage = watch("map")
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const handleClick = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setValue("map", e.target.files[0], { shouldValidate: true });
+      setValue("map", e.target.files[0], { shouldValidate: true })
     }
-  };
+  }
+
+  const handleDelete = () => {
+    setValue("map", null, { shouldValidate: true }) // clear image
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "" // reset file input
+    }
+  }
 
   return (
     <div className="space-y-3">
-      <h1>Map Upload</h1>
+      <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Map Upload</h1>
       <div
         className={`
           border-2 border-dashed rounded-xl cursor-pointer 
           p-6 flex flex-col items-center justify-center text-center 
           transition-all duration-300
-          ${hasError ? "border-red-500 bg-red-50/30 dark:bg-red-500/10" : "border-gray-300 dark:border-gray-600 hover:border-gray-700 hover:bg-blue-50/50 dark:hover:bg-gray-700/50"}
+          ${
+            hasError
+              ? "border-red-500 bg-red-50/30 dark:bg-red-500/10"
+              : "border-gray-300 dark:border-gray-600 hover:border-gray-700 hover:bg-blue-50/50 dark:hover:bg-gray-700/50"
+          }
         `}
         onClick={() => fileInputRef.current?.click()}
       >
@@ -41,9 +57,11 @@ const MapUploader = () => {
           />
         </svg>
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          click to upload
+          Click to upload
         </p>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Upload a map image (PNG, JPG)</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          Upload a map image (PNG, JPG)
+        </p>
       </div>
 
       {/* Hidden input */}
@@ -71,6 +89,16 @@ const MapUploader = () => {
               alt={watchImage.name}
               className="w-full h-56 object-cover rounded-lg shadow-md border border-gray-200 dark:border-gray-700"
             />
+
+            {/* Delete Button */}
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full shadow-md hover:bg-red-700 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
             <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-2 truncate">
               Selected: {watchImage.name}
             </p>
@@ -93,7 +121,7 @@ const MapUploader = () => {
         )}
       </AnimatePresence>
     </div>
-  );
-};
+  )
+}
 
-export default MapUploader;
+export default MapUploader

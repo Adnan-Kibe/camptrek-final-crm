@@ -1,112 +1,105 @@
 'use client'
 import { Plus, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import React from 'react'
-import { useFieldArray, useFormContext } from 'react-hook-form'
+import React, { useState } from 'react'
+import { useFormContext, useFieldArray } from 'react-hook-form'
 
 const TagsInput = () => {
-    const {register, control, formState: {errors}} = useFormContext()
-    const {fields, remove, append} = useFieldArray({
-        control,
-        name: "tags"
-    })
-    
-    const handleAppend = () => {
-        append({
-            tag: ""
-        })
+  const { control, formState: { errors } } = useFormContext()
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'tags',
+  })
+
+  const [inputValue, setInputValue] = useState('')
+
+  const handleAddTag = () => {
+    if (inputValue.trim()) {
+      append({ item: inputValue.trim() }) 
+      setInputValue('')
     }
+  }
 
-    return (
-        <div className="space-y-6">
-            <div>
-                <label className="text-lg font-semibold text-gray-800 mb-4 block">
-                    Tags
-                </label>
-                <p className="text-sm text-gray-600 mb-4">
-                    Add tags to categorize and organize your itinerary
-                </p>
-            </div>
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleAddTag()
+    }
+  }
 
-            {fields.length === 0 && (
-                <motion.div
-                    initial={{ opacity: 0, y: 20}}
-                    animate={{ opacity: 1 , y: 0}}
-                    className="text-center py-12 px-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors duration-200"
-                >
-                    <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Plus className="w-8 h-8 text-gray-400" />
-                    </div>
-                    <p className='text-gray-600 text-lg font-medium mb-1'>No tags added yet</p>
-                    <p className='text-gray-500 text-sm'>Click "Add Tag" to start organizing your content</p>
-                </motion.div>
-            )}
-
-            <AnimatePresence mode='sync'>
-                {fields.map((field, index) => (
-                    <motion.div
-                        key={field.id}
-                        layout
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: -20 }}
-                        transition={{ duration: 0.3, ease: "easeOut" }}
-                        className='bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200'
-                    >
-                        <div className='space-y-3'>
-                            <label className="text-sm font-medium text-gray-700 block">
-                                Tag #{index + 1}
-                            </label>
-                            <div className="relative">
-                                <input
-                                    {...register(`tags.${index}.name`)} 
-                                    placeholder='Enter tag (e.g., Family)'
-                                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-800 placeholder-gray-400 bg-white" 
-                                />
-                            </div>
-                        </div>
-                        
-                        <div className='mt-6 flex justify-end'>
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                type='button'
-                                onClick={() => remove(index)}
-                                className="bg-red-500 hover:bg-red-600 text-white rounded-lg px-4 py-2.5 flex items-center gap-2 font-medium transition-all duration-200 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
-                            >
-                                <Trash2 className='w-4 h-4' /> 
-                                Remove Tag
-                            </motion.button>
-                        </div>
-                    </motion.div>
-                ))}
-            </AnimatePresence>
-
-            <AnimatePresence>
-                {errors.tags && (
-                    <motion.p
-                    initial={{ scale: 0.7, opacity: 0, y: -10 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    exit={{ scale: 0.7, opacity: 0, y: -10 }}
-                    className="text-red-500 font-light text-sm"
-                    >
-                        {errors.tags.message as string}
-                    </motion.p>
-                )}
-            </AnimatePresence>
-
-            <motion.button
-                type='button'
-                whileHover={{scale: 1.02}}
-                whileTap={{scale: 0.98}}
-                className='w-full bg-primary text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2'
-                onClick={handleAppend}
-            >
-                <Plus className='w-5 h-5' />
-                Add Tag
-            </motion.button>
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col space-y-2">
+        <label className="text-sm font-medium text-gray-700">Tags</label>
+        <div className="flex space-x-2">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder="Enter a tag..."
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+          <button
+            type="button"
+            onClick={handleAddTag}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
         </div>
-    )
+      </div>
+
+      {/* Tags Display */}
+      <div className="space-y-2">
+        <AnimatePresence>
+          {fields.map((field: any, index) => (
+            <motion.div
+              key={field.id}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg"
+            >
+              <span className="text-sm text-gray-800 font-medium">
+                {field.item}
+              </span>
+              <button
+                type="button"
+                onClick={() => remove(index)}
+                className="inline-flex items-center p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                aria-label="Remove tag"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        {fields.length === 0 && (
+          <p className="text-sm text-gray-500 italic">
+            No tags added yet. Add your first tag above.
+          </p>
+        )}
+      </div>
+
+      {/* Error Message */}
+      <AnimatePresence mode="wait">
+        {errors.tags && (
+          <motion.p
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="mt-1 text-sm text-red-600 dark:text-red-400 font-medium"
+          >
+            {errors.tags.message as string}
+          </motion.p>
+        )}
+      </AnimatePresence>
+    </div>
+  )
 }
 
 export default TagsInput

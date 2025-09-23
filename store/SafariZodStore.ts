@@ -20,6 +20,18 @@ const daySchema = z.object({
   hotel: hotelSchema,
 });
 
+const tagSchema = z.object({
+  item: z.string().min(1, { error: "Tag cannot be empty" })
+})
+
+const CostInclusiveSchema = z.object({
+  item: z.string().min(1, { error: "Cost inclusive item cannot be empty" })
+})
+
+const CostExclusiveSchema = z.object({
+  item: z.string().min(1, { error: "Cost exclusive item cannot be empty" })
+})
+
 export const safariZodStore = z.object({
   title: z.string().min(3, { error: "Itinerary title must be at least 3 characters long" }),
   overview: z.string().min(20, { error: "Overview must be at least 20 characters long" }),
@@ -32,9 +44,9 @@ export const safariZodStore = z.object({
     .int({ error: "Duration must be an integer" })
     .min(1, { error: "Duration must be at least 1 day" }),
     
-  price: z.number({ error : "Discount must be a number" })
-    .int({ error: "Discount must be an integer" })
-    .min(0, { error: "Discount cannot be negative" }),
+  price: z.number({ error : "Price must be a number" })
+    .int({ error: "Price must be an integer" })
+    .min(0, { error: "Price cannot be negative" }),
 
   arrivalCity: z.string().min(1, { error: "Arrival city is required" }),
   departureCity: z.string().min(1, { error: "Departure city is required" }),
@@ -44,17 +56,14 @@ export const safariZodStore = z.object({
   discount: z.number({ error : "Discount must be a number" })
     .int({ error: "Discount must be an integer" })
     .min(0, { error: "Discount cannot be negative" }),
-  costInclusive: z
-    .array(z.string().min(1, { error: "Cost inclusive item cannot be empty" }))
-    .min(1, { error: "At least one cost inclusive item is required" }),
-  costExclusive: z
-    .array(z.string().min(1, { error: "Cost exclusive item cannot be empty" }))
-    .min(1, { error: "At least one cost exclusive item is required" }),
+
+  costInclusive: z.array(CostInclusiveSchema).min(1, { error: "At least one cost inclusive item is required" }),
+  costExclusive: z.array(CostExclusiveSchema).min(1, { error: "At least one cost exclusive item is required" }),
+
   map: z.instanceof(File, { error: "Map must be a valid file" }),
   days: z.array(daySchema).min(1, { error: "At least one itinerary day is required" }),
-  tags: z
-    .array(z.string().min(1, { error: "Tag cannot be empty" }))
-    .min(1, { error: "At least one tag is required" }),
+  tags: z.array(tagSchema).min(1, { error: "At least one tag is required" }),
+  
 });
 
 export type safariTs = z.infer<typeof safariZodStore>;
