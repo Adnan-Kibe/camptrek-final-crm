@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react"
 import React, { useState } from "react"
 import { useFormContext } from "react-hook-form"
 
-type TextAreaInputProps = {
+type TextAreaBlogProp = {
   title: string
   name: string
   placeholder?: string
@@ -12,13 +12,13 @@ type TextAreaInputProps = {
   required?: boolean
 }
 
-const TextAreaInput = ({
+const TextAreaBlog = ({
   title,
   name,
   placeholder,
-  rows = 4,
+  rows = 5,
   required = false,
-}: TextAreaInputProps) => {
+}: TextAreaBlogProp) => {
   const {
     register,
     formState: { errors },
@@ -103,4 +103,4 @@ const TextAreaInput = ({
   )
 }
 
-export default TextAreaInput
+export default TextAreaBlog

@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
 import { motion } from "motion/react";
 import { MapPin, Calendar, Plane, Save, Images } from "lucide-react";
+import { baseInstance } from "@/constants/api";
 
 const NewCreatePage = () => {
   const router = useRouter();
@@ -25,23 +26,89 @@ const NewCreatePage = () => {
     mode: "onChange",
   });
 
-  const {
-    handleSubmit,
-    formState: { isValid },
-    watch
-  } = methods;
+  const { handleSubmit, formState: { isValid }} = methods;
+
+  const handleImages = async (files: File[]) => {
+    try {
+      const formData = new FormData()
+      files.forEach((file) => formData.append("files", file))
+
+      const response = await baseInstance.post("/itineraries/itinerary-image-upload", formData, { headers: { "Content-Type": "multipart/form-data", } })
+
+      return response.data
+    } catch (e) {
+      alert(`Error uploading images ${e}`)
+    }
+  }
+
+  const processImages = async (images: (File | { image_public_id: string; image_url: string })[]) => {
+    const files = images.filter((img): img is File => img instanceof File)
+    if (files.length === 0) return images
+    const uploaded = await handleImages(files)
+    const others = images.filter((img): img is { image_public_id: string; image_url: string } => !(img instanceof File))
+    return [...others, ...uploaded] 
+  }
 
   const createItinerary = async (data: safariTs) => {
-    console.log("Saved: ",data);
-  };
+    try {
+      // Upload main itinerary images
+      const images = await processImages(data.itineraryImages)
 
-  console.log(watch())
+      // Upload map
+      const map =
+        data.map instanceof File
+          ? (await handleImages([data.map]))[0]
+          : data.map
+
+      // Upload days and hotel images
+      const days = await Promise.all(
+        data.days.map(async (day) => ({
+          day: day.day,
+          title: day.title,
+          details: day.details,
+          images: await processImages(day.images),
+          hotel: {
+            name: day.hotel.name,
+            url: day.hotel.url,
+            images: await processImages(day.hotel.images),
+          },
+        }))
+      )
+
+      // Build final payload with snake_case
+      const payload = {
+        title: data.title,
+        overview: data.overview,
+        duration: data.duration,
+        price: data.price,
+        arrival_city: data.arrivalCity,
+        departure_city: data.departureCity,
+        accommodation: data.accommodation,
+        location: data.location,
+        discount: data.discount,
+        map,
+        images,
+        tags: data.tags.map((t) => ({ item: t.item })),
+        cost_inclusive: data.costInclusive.map((c) => ({ item: c.item })),
+        cost_exclusive: data.costExclusive.map((c) => ({ item: c.item })),
+        days,
+      }
+
+      // Send to backend
+      const response = await baseInstance.post("/itineraries/create", payload)
+      return response.data
+    } catch (e) {
+      console.error("Error creating itinerary", e)
+      throw e
+    }
+  }
+
 
   const { mutate, isPending } = useMutation({
     mutationFn: createItinerary,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["itineraries"] });
-      // router.push("/itineraries");
+      router.replace("/itineraries");
     },
   });
 
@@ -84,11 +151,11 @@ const NewCreatePage = () => {
               <div className="space-y-6">
                 <NewFormInput title="Title" name="title" />
                 <div className="grid grid-cols-5 gap-6">
-                  <NewFormInput title="Duration" name="duration" type="number" />
+                  <NewFormInput title="Duration (Days)" name="duration" type="number" />
                   <NewFormInput title="Arrival City" name="arrivalCity" />
                   <NewFormInput title="Departure City" name="departureCity" />
                   <NewFormInput title="Price" name="price" type="number" />
-                  <NewFormInput title="Discount" name="discount" type="number" />
+                  <NewFormInput title="Discount %" name="discount" type="number" />
                 </div>
                 <TextAreaInput title="Overview" name="overview" />
               </div>
@@ -110,7 +177,7 @@ const NewCreatePage = () => {
 
               <div className="space-y-6">
                 <MapUploader />
-                <MultipleImageUploader />
+                <MultipleImageUploader name='itineraryImages' title='Itinerary Images' />
               </div>
             </section>
 

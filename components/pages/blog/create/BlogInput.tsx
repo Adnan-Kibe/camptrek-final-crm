@@ -1,22 +1,17 @@
-"use client"
+'use client'
 
 import { AnimatePresence, motion } from "motion/react"
 import React from "react"
 import { useFormContext } from "react-hook-form"
 
-type NewFormInputProps = {
+type BlogInputProp = {
   title: string
   name: string
   placeholder?: string
   type?: "text" | "number"
 }
 
-const NewFormInput = ({
-  title,
-  name,
-  placeholder,
-  type = "text",
-}: NewFormInputProps) => {
+const BlogInput = ({ title, name, placeholder, type = "text" }: BlogInputProp) => {
   const {
     register,
     formState: { errors },
@@ -41,19 +36,9 @@ const NewFormInput = ({
 
       {/* Input */}
       <motion.input
-        {...register(name, {
-          valueAsNumber: type === "number", // Use valueAsNumber for number inputs
-          setValueAs: type === "number" 
-            ? (val) => {
-                if (val === "" || val == null || isNaN(Number(val))) return undefined
-                return Number(val)
-              }
-            : undefined,
-        })}
-        type={type} // ✅ Use the actual type prop
+        {...register(name, { valueAsNumber: type === "number" })}
+        type={type}
         placeholder={placeholder}
-        min={type === "number" ? 0 : undefined} // Add min for number inputs
-        step={type === "number" ? 1 : undefined} // Add step for integer inputs
         className={`
           w-full px-4 py-3 rounded-lg border-2 transition-all duration-200
           bg-white/50 backdrop-blur-sm
@@ -105,4 +90,4 @@ const NewFormInput = ({
   )
 }
 
-export default NewFormInput
+export default BlogInput

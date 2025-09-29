@@ -1,148 +1,202 @@
 "use client";
-
-import AccommodationDropDown from "@/components/pages/itinerary/create/AccomodationDropDown";
-import CustomFormInput from "@/components/pages/itinerary/create/CustomFormInput";
-import ItineraryTextArea from "@/components/pages/itinerary/create/ItineraryTextArea";
+import AccommodationDropDown from "@/components/pages/itinerary/create/AccommodationDropDown";
+import DaysInput from "@/components/pages/itinerary/create/DaysInput";
+import ExcludedInput from "@/components/pages/itinerary/create/ExcludedInput";
+import IncludedInput from "@/components/pages/itinerary/create/IncludedInput";
+import MapUploader from "@/components/pages/itinerary/create/MapUploader";
+import MultipleImageUploader from "@/components/pages/itinerary/create/MultipleImageUploader";
+import NewFormInput from "@/components/pages/itinerary/create/NewFormInput";
 import TagsInput from "@/components/pages/itinerary/create/TagsInput";
-import CostExcludedUpdate from "@/components/pages/itinerary/update/CostExcludedUpdate";
-import CostIncludedUpdate from "@/components/pages/itinerary/update/CostIncludedUpdate";
+import TextAreaInput from "@/components/pages/itinerary/create/TextAreaInput";
+
 import { baseInstance } from "@/constants/api";
-import { ItineraryProps } from "@/constants/propConstants";
+import { DaysProp, ImagesProp, ItineraryProp } from "@/constants/propConstants";
+import { safariTs, safariZodStore } from "@/store/SafariZodStore";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Images, MapPin, Plane, Save } from "lucide-react";
+import { motion } from "motion/react";
 import { useParams, useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import { motion, AnimatePresence } from "motion/react";
-import { MapPin, Calendar, Plane, Save, AlertCircle, CheckCircle } from "lucide-react";
-import { UpdateItinerary, UpdateItinerarySchema } from "@/store/ItineraryUpdateZodStore";
 
 const UpdatePage = () => {
   const params = useParams();
   const id = params.id as string;
-  const router = useRouter();
   const queryClient = useQueryClient();
-  const [updateError, setUpdateError] = useState<string | null>(null);
-  const [updateSuccess, setUpdateSuccess] = useState<boolean>(false);
+  const router = useRouter();
 
-  // fetch itinerary
-  const handleFetch = async (id: string) => {
+  const handleFetch = async () => {
     const response = await baseInstance.get(`/itineraries/${id}`);
     return response.data;
   };
 
-  const { data: itinerary, isLoading, error } = useQuery<ItineraryProps>({
+  const {
+    data: itinerary,
+    isLoading,
+    error,
+  } = useQuery<ItineraryProp>({
     queryKey: ["itinerary", id],
-    queryFn: () => handleFetch(id),
+    queryFn: handleFetch,
     enabled: !!id,
   });
 
-  const methods = useForm<UpdateItinerary>({
-    resolver: zodResolver(UpdateItinerarySchema),
-    defaultValues: {},
+  const methods = useForm<safariTs>({
+    resolver: zodResolver(safariZodStore),
+    mode: "onChange",
   });
 
-  const { handleSubmit, reset, formState: { errors } } = methods;
+  const { handleSubmit, reset } = methods;
 
-  // hydrate form when itinerary arrives
+  const handleImages = async (files: File[]) => {
+    try {
+      const formData = new FormData();
+      files.forEach((file) => formData.append("files", file));
+
+      const response = await baseInstance.post(
+        "/itineraries/itinerary-image-upload",
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+
+      return response.data;
+    } catch (e) {
+      alert(`Error uploading images ${e}`);
+    }
+  };
+
+  const processImages = async (
+    images: (File | { image_public_id: string; image_url: string })[]
+  ) => {
+    const files = images.filter((img): img is File => img instanceof File);
+    if (files.length === 0) return images;
+    const uploaded = await handleImages(files);
+    const others = images.filter(
+      (img): img is { image_public_id: string; image_url: string } =>
+        !(img instanceof File)
+    );
+    return [...others, ...uploaded];
+  };
+
+  // ✅ Transform and reset form when data arrives
   useEffect(() => {
-    if (itinerary) {
-      reset({
-        title: itinerary.title,
-        overview: itinerary.overview,
-        tags: itinerary.tags
-          ? itinerary.tags.split(",").map((tag) => ({ name: tag.trim() }))
-          : [],
+    if (itinerary && itinerary.id) {
+      const transformed: safariTs = {
+        title: itinerary.title || "",
+        overview: itinerary.overview || "",
+        itineraryImages: (itinerary.images || []).map((img: ImagesProp) => ({
+          image_public_id: img.image.public_id,
+          image_url: img.image.url,
+        })),
         duration: itinerary.duration,
-        discount: itinerary.discount || 0,
-        arrival_city: itinerary.arrival_city,
-        departure_city: itinerary.departure_city,
-        location: itinerary.location,
         price: itinerary.price,
+        arrivalCity: itinerary.arrival_city,
+        departureCity: itinerary.departure_city,
         accommodation: itinerary.accommodation,
-        cost_exclusive: itinerary.cost_exclusive || [],
-        cost_inclusive: itinerary.cost_inclusive || [],
-      });
+        location: itinerary.location,
+        discount: itinerary.discount,
+        costInclusive: itinerary.cost_inclusive || [],
+        costExclusive: itinerary.cost_exclusive || [],
+        map: itinerary.map
+          ? {
+              image_public_id: itinerary.map.image_public_id,
+              image_url: itinerary.map.image_url,
+            }
+          : { image_public_id: "", image_url: "" },
+        days:
+          itinerary.days?.map((day: DaysProp, i: number) => ({
+            day: i + 1,
+            title: day.title,
+            details: day.details,
+            images: (day.images || []).map((img: ImagesProp) => ({
+              image_public_id: img.image.public_id,
+              image_url: img.image.url,
+            })),
+            hotel: {
+              name: day.hotel_detail.name,
+              url: day.hotel_detail.url,
+              images: (day.hotel_detail.images || []).map(
+                (img: ImagesProp) => ({
+                  image_public_id: img.image.public_id,
+                  image_url: img.image.url,
+                })
+              ),
+            },
+          })) || [],
+        tags: itinerary.tags || [],
+      };
+
+      reset(transformed);
     }
   }, [itinerary, reset]);
 
-  const updateItinerary = async (data: UpdateItinerary) => {
-    // Transform the data to match backend expectations
-    const transformedData: any = {
-      ...(data.title && { title: data.title }),
-      ...(data.overview && { overview: data.overview }),
-      ...(data.duration !== undefined && { duration: Number(data.duration) }),
-      ...(data.price !== undefined && { price: Number(data.price) }),
-      ...(data.discount !== undefined && { discount: Number(data.discount) }),
-      ...(data.arrival_city && { arrival_city: data.arrival_city }),
-      ...(data.departure_city && { departure_city: data.departure_city }),
-      ...(data.location && { location: data.location }),
-      ...(data.accommodation && { accommodation: data.accommodation }),
+  const updateItinerary = async (data: safariTs) => {
+    // 👉 here you’ll handle image processing & send payload
+    const images = await processImages(data.itineraryImages);
+
+    // Upload map
+    const map =
+      data.map instanceof File ? (await handleImages([data.map]))[0] : data.map;
+
+    // Upload days and hotel images
+    const days = await Promise.all(
+      data.days.map(async (day) => ({
+        day: day.day,
+        title: day.title,
+        details: day.details,
+        images: await processImages(day.images),
+        hotel: {
+          name: day.hotel.name,
+          url: day.hotel.url,
+          images: await processImages(day.hotel.images),
+        },
+      }))
+    );
+
+    // Build final payload with snake_case
+    const payload = {
+      title: data.title,
+      overview: data.overview,
+      duration: data.duration,
+      price: data.price,
+      arrival_city: data.arrivalCity,
+      departure_city: data.departureCity,
+      accommodation: data.accommodation,
+      location: data.location,
+      discount: data.discount,
+      map,
+      images,
+      tags: data.tags.map((t) => ({ item: t.item })),
+      cost_inclusive: data.costInclusive.map((c) => ({ item: c.item })),
+      cost_exclusive: data.costExclusive.map((c) => ({ item: c.item })),
+      days,
     };
-
-    // Handle tags - backend expects array of objects with 'name' field
-    if (data.tags && data.tags.length > 0) {
-      transformedData.tags = data.tags.map(tag => ({
-        name: typeof tag === 'string' ? tag : tag.name
-      }));
-    }
-
-    // Handle cost arrays - ensure they're arrays of strings
-    if (data.cost_inclusive) {
-      transformedData.cost_inclusive = data.cost_inclusive.filter(item => item && item.trim());
-    }
-    if (data.cost_exclusive) {
-      transformedData.cost_exclusive = data.cost_exclusive.filter(item => item && item.trim());
-    }
-
-
-    const response = await baseInstance.patch(`/itineraries/update/${id}`, transformedData);
-    
-    if (response.status !== 200) {
-      throw new Error(response.data?.detail || "Failed to update itinerary");
-    }
+    const response = await baseInstance.put(
+      `/itineraries/${id}/update`,
+      payload
+    );
     return response.data;
   };
 
-  const { mutate, isPending } = useMutation({
+  const { mutate, isPending, isSuccess, isError } = useMutation({
     mutationFn: updateItinerary,
-    onSuccess: (data) => {
-      setUpdateSuccess(true);
-      setUpdateError(null);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["itineraries"] });
-      queryClient.invalidateQueries({ queryKey: ["itinerary", id] });
-      
-      // Show success message for 3 seconds before redirecting
-      setTimeout(() => {
-        router.push("/itineraries");
-      }, 3000);
-    },
-    onError: (error: any) => {
-      console.error("Update Error:", error);
-      const errorMessage = error.response?.data?.detail || 
-                          error.response?.data?.message || 
-                          error.message || 
-                          "Failed to update itinerary. Please try again.";
-      setUpdateError(errorMessage);
-      setUpdateSuccess(false);
-      
-      // Scroll to top to show error
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      router.replace("/itineraries");
     },
   });
 
-  const onSubmit = (data: UpdateItinerary) => {
-    setUpdateError(null);
-    setUpdateSuccess(false);
+  const onSubmit = (data: safariTs) => {
     mutate(data);
   };
 
+  // ✅ Loading & Error states (like blog page)
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Loading itinerary...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading itinerary...</p>
         </div>
       </div>
     );
@@ -150,18 +204,19 @@ const UpdatePage = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Failed to Load Itinerary</h2>
-          <p className="text-gray-600 mb-4">Could not fetch the itinerary data.</p>
-          <button
-            onClick={() => router.push("/itineraries")}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Back to Itineraries
-          </button>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center text-red-600">
+          <div className="text-xl mb-4">⚠️</div>
+          <p>Error loading itinerary</p>
         </div>
+      </div>
+    );
+  }
+
+  if (!itinerary) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">Itinerary not found</p>
       </div>
     );
   }
@@ -174,80 +229,15 @@ const UpdatePage = () => {
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Update Itinerary
           </h1>
-          {itinerary && <p className="text-lg text-gray-600">Editing: {itinerary.title}</p>}
+          <p className="text-lg text-gray-600">Modify details of this trip</p>
         </div>
       </div>
 
-      {/* Error/Success Alerts */}
-      <div className="max-w-6xl mx-auto px-4 mt-4">
-        <AnimatePresence mode="wait">
-          {updateError && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6"
-            >
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <h3 className="text-sm font-medium text-red-800 mb-1">Update Failed</h3>
-                  <p className="text-sm text-red-700">{updateError}</p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-          
-          {updateSuccess && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6"
-            >
-              <div className="flex items-start gap-3">
-                <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <h3 className="text-sm font-medium text-green-800 mb-1">Success!</h3>
-                  <p className="text-sm text-green-700">Itinerary updated successfully. Redirecting...</p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Form Validation Errors Summary */}
-        {Object.keys(errors).length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6"
-          >
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <h3 className="text-sm font-medium text-amber-800 mb-2">Please fix the following errors:</h3>
-                <ul className="list-disc list-inside text-sm text-amber-700 space-y-1">
-                  {Object.entries(errors).map(([field, error]) => (
-                    <li key={field}>
-                      <span className="font-medium">{field.replace(/_/g, ' ')}</span>: {
-                        typeof error === 'object' && error?.message 
-                          ? error.message 
-                          : 'Invalid input'
-                      }
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </div>
-
+      {/* Form */}
       <div className="max-w-6xl mx-auto px-4 py-8">
         <FormProvider {...methods}>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-            {/* Basic Information */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
+            {/* Basic Info */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -258,94 +248,82 @@ const UpdatePage = () => {
                     Basic Information
                   </h2>
                   <p className="text-sm text-gray-600">
-                    Essential details about the trip
+                    Update essential details about the trip
                   </p>
                 </div>
               </div>
 
               <div className="space-y-6">
-                <CustomFormInput
-                  title="Trip Title"
-                  name="title"
-                  placeholder="e.g., Amazing Safari"
-                />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <CustomFormInput
-                    title="Duration (days)"
+                <NewFormInput title="Title" name="title" />
+                <div className="grid grid-cols-5 gap-6">
+                  <NewFormInput
+                    title="Duration (Days)"
                     name="duration"
-                    placeholder="7"
                     type="number"
                   />
-                  <CustomFormInput
-                    title="Arrival City"
-                    name="arrival_city"
-                    placeholder="Nairobi"
-                  />
-                  <CustomFormInput
-                    title="Departure City"
-                    name="departure_city"
-                    placeholder="Mombasa"
-                  />
-                  <CustomFormInput
-                    title="Price (USD)"
-                    name="price"
-                    placeholder="2500"
+                  <NewFormInput title="Arrival City" name="arrivalCity" />
+                  <NewFormInput title="Departure City" name="departureCity" />
+                  <NewFormInput title="Price" name="price" type="number" />
+                  <NewFormInput
+                    title="Discount %"
+                    name="discount"
                     type="number"
                   />
                 </div>
-
-                <CustomFormInput
-                  title="Discount % (Optional)"
-                  name="discount"
-                  placeholder="e.g., 10"
-                  type="number"
-                />
-
-                <ItineraryTextArea name="overview" title="Trip Overview" />
+                <TextAreaInput title="Overview" name="overview" />
               </div>
             </section>
 
-            {/* Destination & Preferences */}
+            {/* Media */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <Plane className="w-5 h-5 text-green-600" />
+                <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center">
+                  <Images className="w-5 h-5 text-pink-600" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Destination & Preferences
-                  </h2>
+                  <h2 className="text-xl font-semibold text-gray-900">Media</h2>
                   <p className="text-sm text-gray-600">
-                    Choose the destination and accommodation
+                    Update maps and trip images
                   </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <CustomFormInput title="Location" name="location" placeholder="Kenya" />
-                <AccommodationDropDown />
+              <div className="space-y-6">
+                <MapUploader />
+                <MultipleImageUploader
+                  name="itineraryImages"
+                  title="Itinerary Images"
+                />
               </div>
             </section>
 
-            {/* Tags */}
-            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-purple-600" />
+            {/* Details */}
+            <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                  <Plane className="w-6 h-6 text-green-600" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Organization & Planning
+                  <h2 className="text-lg md:text-xl font-semibold text-gray-900">
+                    Details
                   </h2>
-                  <p className="text-sm text-gray-600">Update tags</p>
+                  <p className="text-sm text-gray-600">
+                    Destination, accommodation, and tags
+                  </p>
                 </div>
               </div>
 
-              <TagsInput />
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <NewFormInput title="Location" name="location" />
+                  <AccommodationDropDown />
+                </div>
+                <TagsInput />
+                <DaysInput />
+              </div>
             </section>
 
-            {/* Cost Info */}
+            {/* Costs */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
@@ -362,8 +340,8 @@ const UpdatePage = () => {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <CostIncludedUpdate />
-                <CostExcludedUpdate />
+                <IncludedInput />
+                <ExcludedInput />
               </div>
             </section>
 
@@ -375,39 +353,55 @@ const UpdatePage = () => {
                     Ready to Update?
                   </h3>
                   <p className="text-sm text-gray-600">
-                    Click below to save your changes
+                    Save your changes or reset the form below
                   </p>
                 </div>
 
-                <motion.button
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.95 }}
-                  type="submit"
-                  disabled={isPending || updateSuccess}
-                  className={`px-8 py-3 rounded-lg font-medium transition-all duration-200 shadow-sm flex items-center gap-2 ${
-                    isPending || updateSuccess
-                      ? "bg-gray-400 text-white cursor-not-allowed"
-                      : "bg-blue-600 hover:bg-blue-700 text-white hover:shadow-md cursor-pointer"
-                  }`}
-                >
-                  {isPending ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Updating...
-                    </>
-                  ) : updateSuccess ? (
-                    <>
-                      <CheckCircle className="w-4 h-4" />
-                      Updated Successfully
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" />
-                      Update Itinerary
-                    </>
-                  )}
-                </motion.button>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <motion.button
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.95 }}
+                    type="submit"
+                    disabled={isPending}
+                    className={`px-8 py-3 rounded-lg font-medium transition-all duration-200 shadow-sm flex items-center gap-2 ${
+                      !isPending
+                        ? "bg-indigo-600 hover:bg-indigo-700 text-white hover:shadow-md cursor-pointer"
+                        : "bg-gray-400 text-white cursor-not-allowed"
+                    }`}
+                  >
+                    {isPending ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Updating...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        Update Itinerary
+                      </>
+                    )}
+                  </motion.button>
+
+                  <button
+                    type="button"
+                    onClick={() => reset()}
+                    className="px-8 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                  >
+                    Reset Form
+                  </button>
+                </div>
               </div>
+
+              {isSuccess && (
+                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
+                  ✅ Itinerary updated successfully!
+                </div>
+              )}
+              {isError && (
+                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+                  ❌ Failed to update itinerary. Please try again.
+                </div>
+              )}
             </section>
           </form>
         </FormProvider>

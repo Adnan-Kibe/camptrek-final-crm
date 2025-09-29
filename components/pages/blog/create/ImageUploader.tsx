@@ -4,57 +4,69 @@ import { AnimatePresence, motion } from "motion/react"
 import React, { useRef } from "react"
 import { useFormContext } from "react-hook-form"
 
-type ImageValue = 
-  | File 
-  | { image_public_id: string; image_url: string } 
-  | null
+type ImageUploaderProp = {
+  title: string
+  name: string
+  description?: string
+}
 
-const MapUploader = () => {
+type ImageValue = File | {
+  image_public_id: string
+  image_url: string
+} | null
+
+const ImageUploader = ({ title, name, description }: ImageUploaderProp) => {
   const { setValue, formState: { errors }, watch } = useFormContext()
-  const hasError = errors["map"]
-  const watchImage: ImageValue = watch("map")
+  const hasError = errors[name]
+  const watchImage: ImageValue = watch(name)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const handleClick = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setValue("map", e.target.files[0], { shouldValidate: true })
+      setValue(name, e.target.files[0], { shouldValidate: true })
     }
   }
 
   const handleDelete = () => {
-    setValue("map", null, { shouldValidate: true })
+    setValue(name, null, { shouldValidate: true })
     if (fileInputRef.current) {
-      fileInputRef.current.value = ""
+      fileInputRef.current.value = "" 
     }
   }
 
-  // Helpers
+  // Helper function to determine if the image is a File or URL object
   const isFile = (image: ImageValue): image is File => {
     return image instanceof File
   }
 
-  const isImageObject = (
-    image: ImageValue
-  ): image is { image_public_id: string; image_url: string } => {
-    return (
-      image !== null &&
-      typeof image === "object" &&
-      !isFile(image) &&
-      "image_url" in image &&
-      "image_public_id" in image
-    )
+  const isImageObject = (image: ImageValue): image is { image_public_id: string; image_url: string } => {
+    return image !== null && 
+           typeof image === 'object' && 
+           !isFile(image) && 
+           'image_url' in image && 
+           'image_public_id' in image
   }
 
+  // Get display image URL
   const getImageUrl = (image: ImageValue): string | null => {
-    if (isFile(image)) return URL.createObjectURL(image)
-    if (isImageObject(image)) return image.image_url
+    if (isFile(image)) {
+      return URL.createObjectURL(image)
+    }
+    if (isImageObject(image)) {
+      return image.image_url
+    }
     return null
   }
 
+  // Get display name
   const getImageName = (image: ImageValue): string => {
-    if (isFile(image)) return image.name
-    if (isImageObject(image)) return `Image (${image.image_public_id})`
-    return ""
+    if (isFile(image)) {
+      return image.name
+    }
+    if (isImageObject(image)) {
+      return `Image (${image.image_public_id})`
+    }
+    return ''
   }
 
   const imageUrl = getImageUrl(watchImage)
@@ -62,11 +74,11 @@ const MapUploader = () => {
 
   return (
     <div className="space-y-3">
-      <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-        Map Upload
+      <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-100 capitalize">
+        {title}
       </h1>
-
-      {/* Upload area only if no image */}
+      
+      {/* Upload Area - Only show if no image */}
       {!watchImage && (
         <div
           className={`
@@ -98,7 +110,7 @@ const MapUploader = () => {
             Click to upload
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Upload a map image (PNG, JPG)
+            {description || "Upload an image (PNG, JPG)"}
           </p>
         </div>
       )}
@@ -106,7 +118,7 @@ const MapUploader = () => {
       {/* Hidden input */}
       <input
         ref={fileInputRef}
-        id="map"
+        id={name}
         type="file"
         accept="image/*"
         onChange={handleClick}
@@ -131,42 +143,30 @@ const MapUploader = () => {
 
             {/* Action Buttons */}
             <div className="absolute top-2 right-2 flex gap-2">
-              {/* Replace */}
+              {/* Replace Button */}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 className="p-2 bg-blue-600 text-white rounded-full shadow-md hover:bg-blue-700 transition"
-                title="Replace map"
+                title="Replace image"
               >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                  />
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
               </button>
 
-              {/* Delete */}
+              {/* Delete Button */}
               <button
                 type="button"
                 onClick={handleDelete}
                 className="p-2 bg-red-600 text-white rounded-full shadow-md hover:bg-red-700 transition"
-                title="Remove map"
+                title="Remove image"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-2 truncate">
-              Selected: {imageName}
-            </p>
+            
           </motion.div>
         )}
       </AnimatePresence>
@@ -202,4 +202,4 @@ const MapUploader = () => {
   )
 }
 
-export default MapUploader
+export default ImageUploader

@@ -1,141 +1,57 @@
 "use client";
-import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import BlogCard from "@/components/pages/blog/main/BlogCard";
+import SkeletonBlogCard from "@/components/pages/blog/main/SkeletonBlogCard";
 import { baseInstance } from "@/constants/api";
-import { useToast } from "@/components/ui/ToastContainer";
+import { BlogList, Blogs } from "@/constants/propConstants";
+import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
-  Plus,
-  FileText,
-  Calendar,
-  User,
-  Edit,
-  Trash2,
-  AlertCircle,
-  RefreshCw,
-} from "lucide-react";
-import Link from "next/link";
-import DeleteConfirmationDialog from "@/components/global/DeleteDialog/DeleteConfirmationDialog";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { PlusCircle, FileText, AlertCircle, RefreshCw } from "lucide-react";
 
-// Blog interface based on the API response
-interface Blog {
-  id: string;
-  title: string;
-  content: string;
-  image_url: string;
-  author_name: string;
-  author_email: string;
-  created_at: string;
-}
-
-// Loading skeleton component
-const BlogSkeleton = () => (
-  <div className="animate-pulse">
-    <div className="p-6 hover:bg-gray-50 transition-colors">
-      <div className="flex items-center gap-4">
-        <div className="flex-shrink-0">
-          <div className="w-16 h-16 bg-gray-300 rounded-lg"></div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="h-5 bg-gray-300 rounded mb-2 w-3/4"></div>
-          <div className="flex items-center gap-4">
-            <div className="h-4 bg-gray-300 rounded w-20"></div>
-            <div className="h-4 bg-gray-300 rounded w-24"></div>
-            <div className="h-4 bg-gray-300 rounded w-16"></div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gray-300 rounded"></div>
-          <div className="w-8 h-8 bg-gray-300 rounded"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-const BlogsPage = () => {
-  const { showToast } = useToast();
-  const queryClient = useQueryClient();
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [blogToDelete, setBlogToDelete] = useState<Blog | null>(null);
+const BlogPage = () => {
+  const router = useRouter();
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState("created_at");
+  const [order, setOrder] = useState("desc");
 
   const handleFetch = async () => {
-    try {
-      const response = await baseInstance.get("/blogs/");
-      return response.data;
-    } catch (error: any) {
-      console.error("Error fetching blogs:", error);
-      throw new Error(error.response?.data?.message || "Failed to fetch blogs");
-    }
+    const response = await baseInstance.get(`/blogs/`, {
+      params: {
+        page,
+        size: 10,
+        sort_by: sortBy,
+        order,
+      },
+    });
+    return response.data;
   };
 
-  // Delete blog mutation
-  const deleteBlogMutation = useMutation({
-    mutationFn: async (blogId: string) => {
-      const response = await baseInstance.delete(`/blogs/delete/${blogId}`);
-      return response.data;
-    },
-    onSuccess: (data) => {
-      showToast({
-        type: "success",
-        title: "Blog Deleted",
-        message: data.message || "Blog deleted successfully",
-      });
-      queryClient.invalidateQueries({ queryKey: ["blogs"] });
-      setDeleteDialogOpen(false);
-      setBlogToDelete(null);
-    },
-    onError: (error: any) => {
-      console.error("Delete blog error:", error);
-      showToast({
-        type: "error",
-        title: "Delete Failed",
-        message: error.response?.data?.message || "Failed to delete blog",
-      });
-    },
-  });
-
-  const handleDeleteClick = (blog: Blog) => {
-    setBlogToDelete(blog);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = () => {
-    if (blogToDelete) {
-      deleteBlogMutation.mutate(blogToDelete.id);
-    }
-  };
-
-  const {
-    data: blogs,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: ["blogs"],
+  const { data, isLoading, error } = useQuery<BlogList>({
+    queryKey: ["blogs", page, sortBy, order],
     queryFn: handleFetch,
     staleTime: 1000 * 60 * 30,
     gcTime: 1000 * 60 * 35,
     retry: 2,
   });
 
-  // Handle retry
-  const handleRetry = () => {
-    refetch();
-  };
-
-  // Handle error state
   if (error) {
     return (
       <div className="space-y-8">
         {/* Page Header */}
         <div className="flex items-start gap-4">
-          <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl shadow-lg">
+          <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl">
             <FileText className="w-8 h-8 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-1">
-              Blog Management
-            </h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-1">Blogs</h1>
             <p className="text-gray-600 text-lg">
               Manage your safari blog content and articles
             </p>
@@ -149,12 +65,11 @@ const BlogsPage = () => {
             Failed to Load Blogs
           </h2>
           <p className="text-gray-600 mb-6">
-            {error.message ||
-              "We encountered an error while trying to load the blogs. Please try again."}
+            Something went wrong loading blogs. Please try again.
           </p>
           <div className="flex gap-3 justify-center">
             <button
-              onClick={handleRetry}
+              onClick={() => router.refresh()}
               className="px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-xl transition-colors flex items-center gap-2"
             >
               <RefreshCw className="w-4 h-4" />
@@ -166,163 +81,109 @@ const BlogsPage = () => {
     );
   }
 
-  return (
-    <div className="space-y-8">
-      {/* Page Header */}
-      <div className="flex items-center justify-between p-6">
-        {/* Left Section */}
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        {/* Page Header */}
         <div className="flex items-start gap-4">
-          <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl shadow-lg">
+          <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl">
             <FileText className="w-8 h-8 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-1">
-              Blog Management
-            </h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-1">Blogs</h1>
             <p className="text-gray-600 text-lg">
               Manage your safari blog content and articles
             </p>
           </div>
         </div>
 
-        {/* Create Blog Button */}
-        <Link
-          href="/blogs/create"
-          className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200 hover:scale-105"
-        >
-          <Plus className="w-5 h-5" />
-          Create New Blog
-        </Link>
-      </div>
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-              <FileText className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Blogs</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {blogs?.length || 0}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-              <User className="w-6 h-6 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">Authors</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {blogs
-                  ? new Set(blogs.map((blog: Blog) => blog.author_name)).size
-                  : 0}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-orange-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">This Month</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {blogs
-                  ? blogs.filter((blog: Blog) => {
-                      const blogDate = new Date(blog.created_at);
-                      const now = new Date();
-                      return (
-                        blogDate.getMonth() === now.getMonth() &&
-                        blogDate.getFullYear() === now.getFullYear()
-                      );
-                    }).length
-                  : 0}
-              </p>
-            </div>
-          </div>
+        {/* Skeletons */}
+        <div className="bg-white rounded-2xl">
+          {[...Array(8)].map((_, i) => (
+            <SkeletonBlogCard key={i} />
+          ))}
         </div>
       </div>
+    );
+  }
 
-      {/* Blogs List */}
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900">All Blogs</h3>
+  if (data) {
+    return (
+      <div className="space-y-8">
+        {/* Page Header */}
+        <div className="flex items-center justify-between p-6 bg-white rounded-2xl">
+          {/* Left Section */}
+          <div className="flex items-start gap-4">
+            <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl">
+              <FileText className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-1">Blogs</h1>
+              <p className="text-gray-600 text-lg">
+                Manage your safari blog content and articles
+              </p>
+            </div>
+          </div>
+
+          {/* Create Blog Button */}
+          <Button
+            onClick={() => router.push("/blogs/create")}
+            className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105"
+          >
+            <PlusCircle className="w-5 h-5" />
+            Create Blog
+          </Button>
         </div>
 
-        {isLoading ? (
-          <div className="divide-y divide-gray-100">
-            {[...Array(5)].map((_, index) => (
-              <BlogSkeleton key={index} />
-            ))}
-          </div>
-        ) : blogs && blogs.length > 0 ? (
-          <div className="divide-y divide-gray-100">
-            {blogs.map((blog: Blog) => (
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Select
+            value={sortBy}
+            onValueChange={(value) => {
+              setSortBy(value);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[200px] bg-white rounded-xl">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="created_at">Date Created</SelectItem>
+              <SelectItem value="title">Title</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={order}
+            onValueChange={(value) => {
+              setOrder(value);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[200px] bg-white rounded-xl">
+              <SelectValue placeholder="Order" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="desc">Descending</SelectItem>
+              <SelectItem value="asc">Ascending</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Blogs List */}
+        {data.blogs && data.blogs.length > 0 ? (
+          <div className="bg-white rounded-2xl">
+            {data.blogs.map((blog: Blogs) => (
               <div
                 key={blog.id}
                 className="p-6 hover:bg-gray-50 transition-colors duration-200"
               >
-                <div className="flex items-center gap-4">
-                  <div className="flex-shrink-0">
-                    {blog.image_url ? (
-                      <img
-                        src={blog.image_url}
-                        alt={blog.title}
-                        className="w-16 h-16 rounded-lg object-cover"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-                        <FileText className="w-8 h-8 text-gray-400" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                      {blog.title}
-                    </h4>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <div className="flex items-center gap-1">
-                        <User className="w-4 h-4" />
-                        <span>{blog.author_name}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        <span>
-                          {new Date(blog.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={`/blogs/update/${blog.id}`}
-                      className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Edit blog"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Link>
-                    <button
-                      onClick={() => handleDeleteClick(blog)}
-                      className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Delete blog"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
+                <BlogCard {...blog} />
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
+          <div className="text-center py-12 bg-white rounded-2xl">
             <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               No Blogs Yet
@@ -330,31 +191,47 @@ const BlogsPage = () => {
             <p className="text-gray-600 mb-6">
               Start creating amazing content for your safari adventures.
             </p>
-            <Link
-              href="/blogs/create"
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200"
+            <Button
+              onClick={() => router.push("/blogs/create")}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200"
             >
-              <Plus className="w-5 h-5" />
+              <PlusCircle className="w-5 h-5" />
               Create Your First Blog
-            </Link>
+            </Button>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {data.pages > 1 && (
+          <div className="flex items-center justify-center gap-3 mt-6">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(p - 1, 1))}
+              disabled={page === 1}
+              className="px-4 py-2 rounded-lg bg-white hover:bg-gray-50"
+            >
+              Previous
+            </Button>
+
+            <span className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100">
+              Page {data.current_page} of {data.pages}
+            </span>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(p + 1, data.pages))}
+              disabled={page === data.pages}
+              className="px-4 py-2 rounded-lg bg-white hover:bg-gray-50"
+            >
+              Next
+            </Button>
           </div>
         )}
       </div>
-
-      {/* Delete Confirmation Dialog */}
-      {blogToDelete && (
-        <DeleteConfirmationDialog
-          title="Delete Blog"
-          itemName={blogToDelete.title}
-          itemType="Blog"
-          isOpen={deleteDialogOpen}
-          onOpenChange={setDeleteDialogOpen}
-          onConfirmDelete={handleConfirmDelete}
-          isDeleting={deleteBlogMutation.isPending}
-        />
-      )}
-    </div>
-  );
+    );
+  }
 };
 
-export default BlogsPage;
+export default BlogPage;

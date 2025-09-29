@@ -4,45 +4,55 @@ import { motion } from 'motion/react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import React, { useState } from 'react'
-import { MapPin, Calendar, Users, Percent, Edit, Trash2, AlertTriangle } from 'lucide-react'
+import { MapPin, Calendar, Users, Percent, Edit, Trash2 } from 'lucide-react'
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { baseInstance } from '@/constants/api'
-import { ItineraryProps } from '@/constants/propConstants'
+
 import DeleteConfirmationDialog from '@/components/global/DeleteDialog/DeleteConfirmationDialog'
+import { ItineraryProp } from '@/constants/propConstants'
 
-const ItineraryCard = ({id, title, duration, overview, images, price, tags, arrival_city, departure_city, accommodation, location, discount} : ItineraryProps) => {
-
+const ItineraryCard = ({
+  id,
+  title,
+  price,
+  discount,
+  images,
+  arrival_city,
+  departure_city,
+  overview,
+  tags,
+  location,
+  duration,
+  accommodation,
+}: ItineraryProp) => {
   const router = useRouter()
   const queryClient = useQueryClient()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const handleEdit = (e: React.MouseEvent) => {
-    e.stopPropagation() // Prevent triggering the view details click
+    e.stopPropagation()
     router.push(`/itineraries/update/${id}`)
   }
 
-  // Delete mutation with proper React Query integration
+  // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await baseInstance.delete(`/itineraries/${id}`)
+      const response = await baseInstance.delete(`/itineraries/${id}/delete`)
       return response.data
     },
     onSuccess: () => {
-      // Invalidate the itineraries query to refresh the list
       queryClient.invalidateQueries({ queryKey: ['itineraries'] })
-      console.log('✅ Itinerary deleted successfully')
       setDeleteDialogOpen(false)
     },
     onError: (error: any) => {
       console.error('❌ Delete error:', error)
-      // You could add a toast notification here instead of alert
       alert('Failed to delete itinerary. Please try again.')
-    }
+    },
   })
 
   const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation() // Prevent triggering the view details click
+    e.stopPropagation()
     setDeleteDialogOpen(true)
   }
 
@@ -50,28 +60,30 @@ const ItineraryCard = ({id, title, duration, overview, images, price, tags, arri
     deleteMutation.mutate(id)
   }
 
-  const discountedPrice = discount > 0 ? price - (price * discount / 100) : price
-  const tagArray = tags ? tags.split(',').slice(0, 3) : []
+  const discountedPrice = discount > 0 ? price - (price * discount) / 100 : price
+
+  // 🆕 Handle images correctly with ImagesProp[]
+  const coverImage =
+    images && images.length > 0 ? images[0].image.url : null
+
+  // 🆕 Tags are ItemProp[]
+  const tagArray = tags ? tags.slice(0, 3) : []
 
   return (
     <>
       <div className='group bg-white border border-gray-200 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden max-w-sm hover:border-gray-300'>
-
-        {images && images.length > 0 ? 
-        (
+        {coverImage ? (
           <div className='relative h-40 w-full overflow-hidden'>
-            <Image 
-              src={images[0].image_url} 
-              alt={title} 
-              fill 
-              className='object-cover rounded-t-lg group-hover:scale-105 transition-transform duration-300' 
+            <Image
+              src={coverImage}
+              alt={title}
+              fill
+              className='object-cover rounded-t-lg group-hover:scale-105 transition-transform duration-300'
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
-            
-            {/* Discount Badge */}
+
             {discount > 0 && (
               <div className="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1">
-                <Percent size={12} />
                 {discount}% OFF
               </div>
             )}
@@ -98,7 +110,7 @@ const ItineraryCard = ({id, title, duration, overview, images, price, tags, arri
 
           {/* Overview */}
           <p className='text-xs text-gray-600 line-clamp-2 leading-relaxed'>{overview}</p>
-          
+
           {/* Duration and Accommodation */}
           <div className='flex items-center justify-between text-xs text-gray-600'>
             <div className="flex items-center gap-1">
@@ -115,11 +127,11 @@ const ItineraryCard = ({id, title, duration, overview, images, price, tags, arri
           {tagArray.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {tagArray.map((tag, index) => (
-                <span 
+                <span
                   key={index}
                   className="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs font-medium border border-primary/20"
                 >
-                  {tag.trim()}
+                  {tag.item}
                 </span>
               ))}
             </div>
@@ -147,7 +159,7 @@ const ItineraryCard = ({id, title, duration, overview, images, price, tags, arri
 
           {/* Edit and Delete Buttons */}
           <div className='flex gap-2'>
-            <motion.button 
+            <motion.button
               whileTap={{ scale: 0.95 }}
               className='flex-1 bg-blue-500 hover:bg-blue-600 py-2 px-3 rounded-lg text-white text-sm font-medium cursor-pointer transition-colors duration-200 flex items-center justify-center gap-1'
               onClick={handleEdit}
@@ -157,11 +169,11 @@ const ItineraryCard = ({id, title, duration, overview, images, price, tags, arri
               Edit
             </motion.button>
 
-            <motion.button 
+            <motion.button
               whileTap={{ scale: 0.95 }}
               className={`flex-1 py-2 px-3 rounded-lg text-white text-sm font-medium cursor-pointer transition-colors duration-200 flex items-center justify-center gap-1 ${
-                deleteMutation.isPending 
-                  ? 'bg-gray-400 cursor-not-allowed' 
+                deleteMutation.isPending
+                  ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-red-500 hover:bg-red-600'
               }`}
               onClick={handleDeleteClick}
