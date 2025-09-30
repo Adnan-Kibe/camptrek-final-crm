@@ -16,6 +16,7 @@ const UpdatePage = () => {
   const id = params.id as string
   const queryClient = useQueryClient()
   const router = useRouter()
+  const [isFormReady, setIsFormReady] = React.useState(false);
 
   // Memoize the fetch function to prevent unnecessary re-creates
   const handleFetch = useMemo(() => async () => {
@@ -64,8 +65,8 @@ const UpdatePage = () => {
         })) || []
       }
       
-      console.log('Resetting form with:', transformedData) // Debug log
       reset(transformedData)
+      setIsFormReady(true);
     }
   }, [blog?.id, blog?.title, blog?.author, blog?.content, blog?.image_public_id, blog?.image_url, blog?.sections, reset])
 
@@ -164,6 +165,17 @@ const UpdatePage = () => {
         <p className="text-gray-600">Blog not found</p>
       </div>
     )
+  }
+
+  if (!isFormReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Preparing form...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

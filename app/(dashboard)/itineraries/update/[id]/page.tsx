@@ -129,7 +129,6 @@ const UpdatePage = () => {
       tags: itinerary.tags || [],
     };
 
-    console.log("Transformed data:", transformed); // Add this to debug
     reset(transformed);
     setIsFormReady(true);
   }, [itinerary, reset]);
