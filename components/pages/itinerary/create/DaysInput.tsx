@@ -37,10 +37,6 @@ const DaysInput = () => {
 
   const handleDelete = (index: number) => {
     remove(index)
-    // Renumber days
-    fields.forEach((_, i) => {
-      setValue(`days.${i}.day`, i + 1)
-    })
   }
 
   return (
