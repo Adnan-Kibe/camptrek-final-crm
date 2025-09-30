@@ -21,13 +21,13 @@ const ItinerariesPage = () => {
 
   const fetchItineraries = async () => {
     const response = await baseInstance.get("/itineraries", {
-      // params: {
-      //   page,
-      //   size: 6,
-      //   name: name || undefined,
-      //   sort_by: sortBy,
-      //   order,
-      // },
+      params: {
+        page,
+        size: 6,
+        name: name || undefined,
+        sort_by: sortBy,
+        order,
+      },
     });
     return response.data;
   };
