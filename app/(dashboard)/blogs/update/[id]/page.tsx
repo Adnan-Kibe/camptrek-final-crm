@@ -35,7 +35,7 @@ const UpdatePage = () => {
   // Initialize form with proper default values matching your schema
   const methods = useForm<TsBlog>({
     resolver: zodResolver(blogSchema),
-    mode: 'onChange',
+    mode: 'onSubmit',
 
   })
 

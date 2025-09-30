@@ -25,6 +25,7 @@ const UpdatePage = () => {
   const id = params.id as string;
   const queryClient = useQueryClient();
   const router = useRouter();
+  const [isFormReady, setIsFormReady] = React.useState(false);
 
   const handleFetch = async () => {
     const response = await baseInstance.get(`/itineraries/${id}`);
@@ -129,6 +130,7 @@ const UpdatePage = () => {
 
     console.log("Transformed data:", transformed); // Add this to debug
     reset(transformed);
+    setIsFormReady(true);
   }, [itinerary, reset]);
 
   const updateItinerary = async (data: safariTs) => {
@@ -218,6 +220,17 @@ const UpdatePage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-gray-600">Itinerary not found</p>
+      </div>
+    );
+  }
+
+  if (!isFormReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Preparing form...</p>
+        </div>
       </div>
     );
   }

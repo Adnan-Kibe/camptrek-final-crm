@@ -20,7 +20,7 @@ const CreatePage = () => {
 
   const methods = useForm<TsBlog>({
     resolver: zodResolver(blogSchema),
-    mode: 'onChange',
+    mode: 'onSubmit',
   })
 
   const { handleSubmit, formState: { isValid } } = methods

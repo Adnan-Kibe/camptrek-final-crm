@@ -23,7 +23,7 @@ const NewCreatePage = () => {
   const queryClient = useQueryClient();
   const methods = useForm<safariTs>({
     resolver: zodResolver(safariZodStore),
-    mode: "onChange",
+    mode: "onSubmit",
   });
 
   const { handleSubmit, formState: { isValid }} = methods;
