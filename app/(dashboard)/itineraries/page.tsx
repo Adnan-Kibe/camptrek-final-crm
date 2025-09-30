@@ -20,7 +20,7 @@ const ItinerariesPage = () => {
   const [order, setOrder] = useState<"asc" | "desc">("asc");
 
   const fetchItineraries = async () => {
-    const response = await baseInstance.get("/itineraries", {
+    const response = await baseInstance.get("/itineraries/", {
       params: {
         page,
         size: 6,
