@@ -126,7 +126,7 @@ const MapUploader = () => {
             <img
               src={imageUrl}
               alt={imageName}
-              className="w-full h-56 object-cover rounded-lg shadow-md border border-gray-200 dark:border-gray-700"
+              className="w-full h-96 object-cover rounded-lg shadow-md border border-gray-200 dark:border-gray-700"
             />
 
             {/* Action Buttons */}
@@ -163,10 +163,6 @@ const MapUploader = () => {
                 <X className="w-4 h-4" />
               </button>
             </div>
-
-            <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-2 truncate">
-              Selected: {imageName}
-            </p>
           </motion.div>
         )}
       </AnimatePresence>
