@@ -80,54 +80,55 @@ const UpdatePage = () => {
 
   // ✅ Transform and reset form when data arrives
   useEffect(() => {
-    if (itinerary && itinerary.id) {
-      const transformed: safariTs = {
-        title: itinerary.title ?? "",
-        overview: itinerary.overview ?? "",
-        itineraryImages: (itinerary.images || []).map((img: ImagesProp) => ({
-          image_public_id: img.image.public_id,
-          image_url: img.image.url,
-        })),
-        duration: itinerary.duration ?? 1,
-        price: itinerary.price ?? 0,
-        arrivalCity: itinerary.arrival_city,
-        departureCity: itinerary.departure_city,
-        accommodation: itinerary.accommodation,
-        location: itinerary.location ?? "",
-        discount: itinerary.discount ?? 0,
-        costInclusive: itinerary.cost_inclusive || [],
-        costExclusive: itinerary.cost_exclusive || [],
-        map: itinerary.map
-          ? {
-              image_public_id: itinerary.map.image_public_id,
-              image_url: itinerary.map.image_url,
-            }
-          : { image_public_id: "", image_url: "" },
-        days:
-          itinerary.days?.map((day: DaysProp, i: number) => ({
-            day: i + 1,
-            title: day.title,
-            details: day.details,
-            images: (day.images || []).map((img: ImagesProp) => ({
-              image_public_id: img.image.public_id,
-              image_url: img.image.url,
-            })),
-            hotel: {
-              name: day.hotel_detail.name,
-              url: day.hotel_detail.url,
-              images: (day.hotel_detail.images || []).map(
-                (img: ImagesProp) => ({
-                  image_public_id: img.image.public_id,
-                  image_url: img.image.url,
-                })
-              ),
-            },
-          })) || [],
-        tags: itinerary.tags || [],
-      };
+    if (!itinerary) return;
+    
+    const transformed: safariTs = {
+      title: itinerary.title || "",
+      overview: itinerary.overview || "",
+      itineraryImages: (itinerary.images || []).map((img: ImagesProp) => ({
+        image_public_id: img.image.public_id,
+        image_url: img.image.url,
+      })),
+      duration: itinerary.duration || 0,
+      price: itinerary.price || 0,
+      arrivalCity: itinerary.arrival_city || "",
+      departureCity: itinerary.departure_city || "",
+      accommodation: itinerary.accommodation || "",
+      location: itinerary.location || "",
+      discount: itinerary.discount || 0,
+      costInclusive: itinerary.cost_inclusive || [],
+      costExclusive: itinerary.cost_exclusive || [],
+      map: itinerary.map
+        ? {
+            image_public_id: itinerary.map.image_public_id,
+            image_url: itinerary.map.image_url,
+          }
+        : { image_public_id: '', image_url: '' },
+      days:
+        itinerary.days?.map((day: DaysProp, i: number) => ({
+          day: i + 1,
+          title: day.title || "",
+          details: day.details || "",
+          images: (day.images || []).map((img: ImagesProp) => ({
+            image_public_id: img.image.public_id,
+            image_url: img.image.url,
+          })),
+          hotel: {
+            name: day.hotel_detail?.name || "",
+            url: day.hotel_detail?.url || "",
+            images: (day.hotel_detail?.images || []).map(
+              (img: ImagesProp) => ({
+                image_public_id: img.image.public_id,
+                image_url: img.image.url,
+              })
+            ),
+          },
+        })) || [],
+      tags: itinerary.tags || [],
+    };
 
-      reset(transformed);
-    }
+    console.log("Transformed data:", transformed); // Add this to debug
+    reset(transformed);
   }, [itinerary, reset]);
 
   const updateItinerary = async (data: safariTs) => {
