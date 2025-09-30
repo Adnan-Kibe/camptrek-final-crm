@@ -23,7 +23,7 @@ const ItinerariesPage = () => {
     const response = await baseInstance.get("/itineraries", {
       params: {
         page,
-        size: 6,
+        size: 10,
         name: name || undefined,
         sort_by: sortBy,
         order,
