@@ -43,7 +43,7 @@ const UpdatePage = () => {
 
   const methods = useForm<safariTs>({
     resolver: zodResolver(safariZodStore),
-    mode: "onChange",
+    mode: "onSubmit",
   });
 
   const { handleSubmit, reset } = methods;
