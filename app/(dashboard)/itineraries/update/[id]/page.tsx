@@ -82,19 +82,19 @@ const UpdatePage = () => {
   useEffect(() => {
     if (itinerary && itinerary.id) {
       const transformed: safariTs = {
-        title: itinerary.title || "",
-        overview: itinerary.overview || "",
+        title: itinerary.title ?? "",
+        overview: itinerary.overview ?? "",
         itineraryImages: (itinerary.images || []).map((img: ImagesProp) => ({
           image_public_id: img.image.public_id,
           image_url: img.image.url,
         })),
-        duration: itinerary.duration,
-        price: itinerary.price,
+        duration: itinerary.duration ?? 1,
+        price: itinerary.price ?? 0,
         arrivalCity: itinerary.arrival_city,
         departureCity: itinerary.departure_city,
         accommodation: itinerary.accommodation,
-        location: itinerary.location,
-        discount: itinerary.discount,
+        location: itinerary.location ?? "",
+        discount: itinerary.discount ?? 0,
         costInclusive: itinerary.cost_inclusive || [],
         costExclusive: itinerary.cost_exclusive || [],
         map: itinerary.map
