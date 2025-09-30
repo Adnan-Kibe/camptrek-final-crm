@@ -44,14 +44,14 @@ export const safariZodStore = z.object({
 
   itineraryImages: z.array(ImageSchema).min(1, { error: "At least one image is required" }),
 
-  duration: z
-    .number({ error: "Duration must be a number" })
-    .int({ error: "Duration must be an integer" })
+  duration: z.coerce
+    .number({ error : "Duration must be a number" })
+    .int({ error : "Duration must be a whole number" })
     .min(1, { error: "Duration must be at least 1 day" }),
 
-  price: z
+  price: z.coerce
     .number({ error: "Price must be a number" })
-    .int({ error: "Price must be an integer" })
+    .int({ error: "Price must be a whole number" })
     .min(0, { error: "Price cannot be negative" }),
 
   arrivalCity: z.string().min(1, { error: "Arrival city is required" }),
@@ -59,10 +59,11 @@ export const safariZodStore = z.object({
   accommodation: z.string().min(1, { error: "Accommodation is required" }),
   location: z.string().min(1, { error: "Location is required" }),
 
-  discount: z
+  discount: z.coerce
     .number({ error: "Discount must be a number" })
-    .int({ error: "Discount must be an integer" })
-    .min(0, { error: "Discount cannot be negative" }),
+    .int({ error: "Discount must be a whole number" })
+    .min(0, { error: "Discount cannot be negative" })
+    .max(100, { error: "Discount cannot exceed 100%" }),
 
   costInclusive: z.array(CostInclusiveSchema).min(1, { error: "At least one cost inclusive item is required" }),
   costExclusive: z.array(CostExclusiveSchema).min(1, { error: "At least one cost exclusive item is required" }),

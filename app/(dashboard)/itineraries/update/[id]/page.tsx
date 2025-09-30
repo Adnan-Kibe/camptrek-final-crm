@@ -42,9 +42,10 @@ const UpdatePage = () => {
     enabled: !!id,
   });
 
-  const methods = useForm<safariTs>({
+  const methods = useForm({
     resolver: zodResolver(safariZodStore),
     mode: "onSubmit",
+    defaultValues: {} as safariTs,
   });
 
   const { handleSubmit, reset } = methods;

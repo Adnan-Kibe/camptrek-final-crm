@@ -41,15 +41,7 @@ const NewFormInput = ({
 
       {/* Input */}
       <motion.input
-        {...register(name, {
-          valueAsNumber: type === "number", // Use valueAsNumber for number inputs
-          setValueAs: type === "number" 
-            ? (val) => {
-                if (val === "" || val == null || isNaN(Number(val))) return undefined
-                return Number(val)
-              }
-            : undefined,
-        })}
+        {...register(name)}
         type={type} // ✅ Use the actual type prop
         placeholder={placeholder}
         min={type === "number" ? 0 : undefined} // Add min for number inputs
